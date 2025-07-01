@@ -1,3 +1,3 @@
 @echo off
-pip install -r requirements.txt
-pyinstaller --onefile --noconsole main_gui.py --name PromptPilot
+pyinstaller --onefile --windowed main_gui.py --icon=icon.ico
+pause
