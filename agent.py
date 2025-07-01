@@ -4,13 +4,13 @@ import re
 
 def call_phi3(prompt: str) -> list:
     """
-    Calls the local Phi-3 model using Ollama and converts the natural language prompt into structured automation steps.
+    Calls Phi-3 or LLaMA via Ollama and parses structured JSON actions.
     """
     cmd = [
-        "ollama", "run", "phi3",
+        "ollama", "run", "phi3",  # or "llama3"
         f"""
 You are a Windows automation assistant.
-Convert this prompt into a list of structured actions as JSON, like:
+Respond ONLY with a JSON array like:
 [
   {{ "action": "open", "app": "notepad" }},
   {{ "action": "wait", "seconds": 1 }},
@@ -24,14 +24,19 @@ Prompt: {prompt}
     try:
         result = subprocess.run(cmd, capture_output=True, timeout=60, text=True, encoding='utf-8', errors='replace')
         raw_output = result.stdout.strip()
-
-        # Optional logging for debug
         print("🔧 Raw model output:\n", raw_output)
 
-        # Remove comments and extract JSON
-        cleaned = re.sub(r'//.*?\n', '', raw_output)
-        json_text = re.search(r"\[.*\]", cleaned, re.DOTALL).group()
+        # Remove comments (e.g., //...) and trailing junk
+        cleaned_output = re.sub(r'//.*?\n', '', raw_output)
 
+        # Find first valid JSON array
+        match = re.search(r'\[\s*{.*?}\s*\]', cleaned_output, re.DOTALL)
+        if not match:
+            raise ValueError("❌ No valid JSON array found.")
+
+        json_text = match.group(0)
+
+        # Convert string to Python list
         actions = json.loads(json_text)
         return actions
 
