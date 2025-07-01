@@ -9,7 +9,7 @@ def run_action(command_str):
         for act in actions:
             action = act.get("action")
             if action == "open":
-                subprocess.Popen(act["app"])
+                subprocess.Popen(act["app"], encoding="utf-8", errors="ignore")
                 time.sleep(1)
             elif action == "type":
                 pyautogui.write(act["text"], interval=0.05)
