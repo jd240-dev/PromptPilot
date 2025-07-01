@@ -6,6 +6,6 @@ LOG_FILE = os.path.join(LOG_DIR, "actions.log")
 
 def log_action(prompt: str, command: str):
     os.makedirs(LOG_DIR, exist_ok=True)
-    with open(LOG_FILE, "a") as f:
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
         timestamp = datetime.now().isoformat()
         f.write(f"{timestamp} | PROMPT: {prompt} | CMD: {command}\n")
