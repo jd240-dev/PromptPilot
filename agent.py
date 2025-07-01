@@ -1,45 +1,64 @@
 import subprocess
 import json
 import re
+import logging
+from utils import clean_text
 
-def call_phi3(prompt: str) -> list:
-    """
-    Calls Phi-3 or LLaMA via Ollama and parses structured JSON actions.
-    """
-    cmd = [
-        "ollama", "run", "phi3",  # or "llama3"
-        f"""
-You are a Windows automation assistant.
-Respond ONLY with a JSON array like:
-[
-  {{ "action": "open", "app": "notepad" }},
-  {{ "action": "wait", "seconds": 1 }},
-  {{ "action": "type", "text": "hello world" }}
-]
+logger = logging.getLogger("PromptPilot")
 
-Prompt: {prompt}
-"""
-    ]
-
+def call_llm(prompt):
     try:
-        result = subprocess.run(cmd, capture_output=True, timeout=60, text=True, encoding='utf-8', errors='replace')
-        raw_output = result.stdout.strip()
-        print("🔧 Raw model output:\n", raw_output)
+        full_prompt = (
+            "You are a Windows automation assistant.\n"
+            "Convert the following instruction into a list of JSON actions. Only return JSON, nothing else.\n\n"
+            "Instruction:\n" + prompt
+        )
 
-        # Remove comments (e.g., //...) and trailing junk
-        cleaned_output = re.sub(r'//.*?\n', '', raw_output)
+        result = subprocess.run(
+            ["ollama", "run", "phi3", full_prompt],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=60
+        )
 
-        # Find first valid JSON array
-        match = re.search(r'\[\s*{.*?}\s*\]', cleaned_output, re.DOTALL)
-        if not match:
-            raise ValueError("❌ No valid JSON array found.")
+        output = result.stdout.strip()
+        logger.info("🔧 Raw model output:\n%s", output)
 
-        json_text = match.group(0)
+        return parse_actions(output)
 
-        # Convert string to Python list
-        actions = json.loads(json_text)
-        return actions
+    except subprocess.TimeoutExpired:
+        logger.error("❌ LLM response timed out.")
+        return []
+    except Exception as e:
+        logger.exception("❌ Unexpected error calling LLM: %s", e)
+        return []
+
+def parse_actions(raw_output):
+    try:
+        # Strip code block markers like ```json or ```
+        cleaned_output = re.sub(r"```(json)?", "", raw_output, flags=re.IGNORECASE).strip()
+        cleaned_output = re.sub(r"```", "", cleaned_output).strip()
+
+        # Remove single-line comments if any
+        cleaned_output = re.sub(r'//.*', '', cleaned_output)
+
+        # If multiple JSON-like objects, pick first valid array
+        matches = re.findall(r'\[\s*{.*?}\s*\]', cleaned_output, re.DOTALL)
+        if not matches:
+            raise ValueError("No JSON array found.")
+
+        for match in matches:
+            try:
+                actions = json.loads(match)
+                if isinstance(actions, list):
+                    return actions
+            except json.JSONDecodeError:
+                continue
+
+        raise ValueError("All extracted JSON arrays are invalid.")
 
     except Exception as e:
-        print(f"⚠️ Agent Error: {e}")
+        logger.error("❌ JSON parsing failed: %s", e)
+        logger.debug("⚠️ Still invalid JSON after cleaning. Full output:\n%s", raw_output)
         return []
