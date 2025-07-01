@@ -1,5 +1,11 @@
 import subprocess
 import json
+import re
+
+def clean_json_like(text):
+    # Remove comments like // ...
+    text = re.sub(r'//.*', '', text)
+    return text
 
 def get_command_from_prompt(prompt):
     try:
@@ -27,17 +33,19 @@ Prompt: {prompt}
         stdout, stderr = process.communicate(input=llama_prompt, timeout=60)
         output = stdout.strip()
 
-        # Extract JSON from the model output
+        # Extract JSON block
         start = output.find('[')
         end = output.rfind(']') + 1
         json_block = output[start:end]
 
-        # Try parsing JSON
+        # Clean JSON block of comments
+        json_block = clean_json_like(json_block)
+
         try:
-            parsed = json.loads(json_block)
+            json.loads(json_block)  # Validate JSON
             return json_block
         except json.JSONDecodeError:
-            print("⚠️ LLaMA returned invalid JSON. Full output:")
+            print("⚠️ Still invalid JSON after cleaning. Full output:")
             print(output)
             return "[]"
 
