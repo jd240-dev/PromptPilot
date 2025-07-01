@@ -1,22 +1,15 @@
-# PromptPilot Pro
+# PromptPilot – AI Automation Assistant (Local LLaMA)
 
-A local AI-powered Windows assistant that automates any command you type using LLaMA and natural language.
+Run commands like:
+- Open Edge and search for YouTube
+- Open Notepad and type Hello
 
----
-
-## Features
-- Works offline using Ollama + LLaMA
-- Automates tasks like opening apps, typing, clicking, browsing
-- Full GUI
-- Deletes logs on exit
-- No follow-ups or confirmations
-
----
-
-## Setup Instructions
-
-### 🔧 Requirements
+### Requirements:
 - Python 3.10+
-- [Ollama](https://ollama.com) installed with `llama3` model:
-  ```bash
-  ollama run llama3
+- Ollama with `llama3`
+- pip install -r requirements.txt
+
+### Run:
+```bash
+ollama run llama3
+python main_gui.py
