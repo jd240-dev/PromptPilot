@@ -1,15 +1,20 @@
-# PromptPilot – AI Automation Assistant (Local LLaMA)
+# PromptPilot Ultimate
 
-Run commands like:
-- Open Edge and search for YouTube
-- Open Notepad and type Hello
+A fast AI-powered Windows automation assistant using local LLMs like Phi-3 via Ollama.
 
-### Requirements:
+## ✅ Features
+- Understands natural language prompts
+- Opens apps, types, clicks, waits
+- Runs locally (offline)
+- CLI & GUI
+- Deletes all logs on exit
+
+## 💻 Requirements
 - Python 3.10+
-- Ollama with `llama3`
-- pip install -r requirements.txt
+- Ollama with Phi-3 model
 
-### Run:
+## ⚙️ Setup
+
 ```bash
-ollama run llama3
-python main_gui.py
+pip install -r requirements.txt
+ollama run phi3
