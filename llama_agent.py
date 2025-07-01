@@ -1,24 +1,38 @@
 import subprocess
+import json
 
 def get_command_from_prompt(prompt):
     try:
         result = subprocess.run(
             ["ollama", "run", "llama3", f"""
-Act as a Windows automation assistant.
-Your job is to convert user instructions into simple, step-by-step machine-executable commands.
-Respond only with a Python-style list of actions in this format:
+You are a Windows automation assistant.
+Convert this prompt into a list of structured actions as JSON:
 [
   {{"action": "open", "app": "notepad"}},
   {{"action": "wait", "seconds": 1}},
-  {{"action": "type", "text": "Hello World"}}
+  {{"action": "type", "text": "hello"}}
 ]
 
-User prompt: {prompt}
+Prompt: {prompt}
 """],
             capture_output=True,
             text=True,
-            timeout=20
+            timeout=20,
+            encoding="utf-8",
+            errors="ignore"
         )
-        return result.stdout.strip()
+
+        output = result.stdout.strip()
+
+        # Try parsing the JSON response
+        try:
+            json.loads(output)
+            return output
+        except json.JSONDecodeError:
+            print("❌ Invalid JSON from LLaMA:")
+            print(output)
+            return "[]"
+
     except Exception as e:
-        return f"[ERROR] {e}"
+        print(f"[ERROR llama_agent.py] {e}")
+        return "[]"
