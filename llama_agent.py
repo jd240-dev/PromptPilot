@@ -3,9 +3,16 @@ import json
 
 def get_command_from_prompt(prompt):
     try:
-        result = subprocess.run(
-            [
-                "ollama", "run", "llama3", f"""
+        process = subprocess.Popen(
+            ["ollama", "run", "phi3"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding='utf-8'
+        )
+
+        llama_prompt = f"""
 You are a Windows automation assistant.
 Convert this prompt into a list of structured actions as JSON:
 [
@@ -15,31 +22,29 @@ Convert this prompt into a list of structured actions as JSON:
 ]
 
 Prompt: {prompt}
-"""],
-            capture_output=True,
-            text=True,
-            timeout=60,  # Increased timeout for slower responses
-            encoding="utf-8",
-            errors="ignore"
-        )
+"""
 
-        output = result.stdout.strip()
+        stdout, stderr = process.communicate(input=llama_prompt, timeout=60)
+        output = stdout.strip()
 
-        # Clean and extract valid JSON block
+        # Extract JSON from the model output
+        start = output.find('[')
+        end = output.rfind(']') + 1
+        json_block = output[start:end]
+
+        # Try parsing JSON
         try:
-            # Sometimes the model adds extra text before/after
-            start = output.find('[')
-            end = output.rfind(']') + 1
-            json_part = output[start:end]
-            json.loads(json_part)  # validate
-            return json_part
-        except Exception as json_err:
-            print(f"❌ Invalid JSON from LLaMA:\n{output}")
+            parsed = json.loads(json_block)
+            return json_block
+        except json.JSONDecodeError:
+            print("⚠️ LLaMA returned invalid JSON. Full output:")
+            print(output)
             return "[]"
 
     except subprocess.TimeoutExpired:
-        print("⏰ LLaMA response timed out after 60 seconds.")
+        process.kill()
+        print("⏰ phi3 model timed out after 60s.")
         return "[]"
     except Exception as e:
-        print(f"[ERROR llama_agent.py] {e}")
+        print(f"🔥 ERROR in llama_agent.py: {e}")
         return "[]"
