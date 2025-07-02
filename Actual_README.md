@@ -1,14 +1,18 @@
-# PromptPilot
+# PromptPilot 🛠️
 
-PromptPilot is a fast, local, natural-language-driven AI Windows automation tool powered by Phi-3 (via Ollama). Just type a command like "Open Edge and search for Gmail" and it handles everything automatically.
+AI-powered Windows automation assistant using local LLMs like `phi3:mini` via Ollama.
 
-## 💻 How to Use
+## Features
+- Works offline
+- Supports GUI and CLI
+- Converts natural language to Windows actions
+- Uses `pyautogui` for automation
 
-1. Make sure you have:
-   - Python 3.10+
-   - `ollama` and `phi3` model installed (`ollama run phi3`)
-   - Required packages: `pip install -r requirements.txt`
+## Requirements
+- Python 3.12+
+- Ollama installed (`https://ollama.com`)
+- Model `phi3:mini` pulled locally (`ollama pull phi3:mini`)
+- Dependencies: `pip install -r requirements.txt`
 
-2. Run via CMD:
-   ```bash
-   python main_cmd.py
+## Usage
+- Run `main_gui.py` or `main_cmd.py`
