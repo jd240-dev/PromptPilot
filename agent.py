@@ -1,64 +1,38 @@
+# agent.py
+
 import subprocess
 import json
-import re
-import logging
-from utils import clean_text
+from utils import extract_json, is_valid_json, log
 
-logger = logging.getLogger("PromptPilot")
+def call_phi3(prompt):
+    log("Calling local Phi-3 model...", "INFO")
+    raw_prompt = f'''
+You are a Windows automation assistant.
+Convert this prompt into a list of structured actions in valid JSON format only.
 
-def call_llm(prompt):
+Prompt: {prompt}
+    '''
+
     try:
-        full_prompt = (
-            "You are a Windows automation assistant.\n"
-            "Convert the following instruction into a list of JSON actions. Only return JSON, nothing else.\n\n"
-            "Instruction:\n" + prompt
-        )
-
         result = subprocess.run(
-            ["ollama", "run", "phi3", full_prompt],
+            ["ollama", "run", "phi3", raw_prompt],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
             timeout=60
         )
-
         output = result.stdout.strip()
-        logger.info("🔧 Raw model output:\n%s", output)
+        log(f"🔧 Raw model output:\n{output}", "DEBUG")
 
-        return parse_actions(output)
+        json_data = extract_json(output)
+        if json_data and is_valid_json(json_data):
+            return json.loads(json_data)
+
+        raise ValueError("❌ Model returned invalid JSON.")
 
     except subprocess.TimeoutExpired:
-        logger.error("❌ LLM response timed out.")
-        return []
+        log("⚠️ Phi-3 model timed out.", "ERROR")
     except Exception as e:
-        logger.exception("❌ Unexpected error calling LLM: %s", e)
-        return []
+        log(f"⚠️ Agent Error: {str(e)}", "ERROR")
 
-def parse_actions(raw_output):
-    try:
-        # Strip code block markers like ```json or ```
-        cleaned_output = re.sub(r"```(json)?", "", raw_output, flags=re.IGNORECASE).strip()
-        cleaned_output = re.sub(r"```", "", cleaned_output).strip()
-
-        # Remove single-line comments if any
-        cleaned_output = re.sub(r'//.*', '', cleaned_output)
-
-        # If multiple JSON-like objects, pick first valid array
-        matches = re.findall(r'\[\s*{.*?}\s*\]', cleaned_output, re.DOTALL)
-        if not matches:
-            raise ValueError("No JSON array found.")
-
-        for match in matches:
-            try:
-                actions = json.loads(match)
-                if isinstance(actions, list):
-                    return actions
-            except json.JSONDecodeError:
-                continue
-
-        raise ValueError("All extracted JSON arrays are invalid.")
-
-    except Exception as e:
-        logger.error("❌ JSON parsing failed: %s", e)
-        logger.debug("⚠️ Still invalid JSON after cleaning. Full output:\n%s", raw_output)
-        return []
+    return []
