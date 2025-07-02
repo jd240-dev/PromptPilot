@@ -1,56 +1,26 @@
-import re
+import subprocess
 import json
-import logging
+import re
+from logger import setup_logger
 
-logger = logging.getLogger("PromptPilot-Utils")
+logger = setup_logger("PromptPilot-Utils")
 
-def clean_text(text: str) -> str:
-    """
-    Strips leading/trailing whitespace and removes invalid characters.
-    """
-    return text.strip().replace('\x00', '').replace('\u0000', '')
-
-
-def sanitize_json(text: str) -> str:
-    """
-    Cleans and attempts to fix malformed JSON output from the model.
-    Handles:
-    - Improper quotes
-    - Trailing commas
-    - Multiple JSON blocks
-    - Code block wrappers
-    """
-    # Remove triple backticks or language markers like ```json
-    text = re.sub(r"```(json)?", "", text).strip("` \n")
-
-    # Try to extract JSON array or object
-    json_match = re.search(r'(\[\s*{.*?}\s*\])', text, re.DOTALL)
-    if not json_match:
-        json_match = re.search(r'({.*})', text, re.DOTALL)
-
-    if json_match:
-        cleaned = json_match.group(1)
-    else:
-        cleaned = text
-
-    # Fix common JSON issues
-    cleaned = re.sub(r",\s*}", "}", cleaned)
-    cleaned = re.sub(r",\s*]", "]", cleaned)
-
-    # Ensure valid double quotes
-    cleaned = re.sub(r"‘|’|“|”", "\"", cleaned)
-
-    # Remove trailing commas
-    cleaned = re.sub(r",\s*([\]}])", r"\1", cleaned)
-
-    # Fix incorrect quotes around keys
-    cleaned = re.sub(r"([,{]\s*)([a-zA-Z0-9_]+)(\s*:\s*)", r'\1"\2"\3', cleaned)
-
-    # Remove any non-JSON trailing data
+def sanitize_json(raw_output: str):
     try:
-        # Final validation
-        json.loads(cleaned)
-    except json.JSONDecodeError as e:
-        logger.warning(f"⚠️ JSON still may be invalid: {e}")
+        # Remove markdown code block
+        raw_output = raw_output.strip("` \njson")
+        # Extract first valid JSON array
+        matches = re.findall(r'\[\s*{.*?}\s*\]', raw_output, re.DOTALL)
+        for match in matches:
+            try:
+                return json.loads(match)
+            except json.JSONDecodeError:
+                continue
+        logger.warning("⚠️ No valid JSON arrays found.")
+    except Exception as e:
+        logger.error(f"❌ JSON sanitization failed: {e}")
+    return []
 
-    return cleaned
+def timeout_subprocess(cmd, timeout=60):
+    result = subprocess.run(cmd, capture_output=True, timeout=timeout, text=True)
+    return result.stdout
