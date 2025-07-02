@@ -1,3 +1,4 @@
 @echo off
-pyinstaller --onefile --windowed main_gui.py --icon=icon.ico
-pause
+echo Building PromptPilot executable...
+pyinstaller --onefile --noconsole main_cmd.py
+pyinstaller --noconsole main_gui.py
