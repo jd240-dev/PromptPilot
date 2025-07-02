@@ -1,26 +1,36 @@
-import subprocess
 import json
 import re
-from logger import setup_logger
+import signal
+import logging
 
-logger = setup_logger("PromptPilot-Utils")
+logger = logging.getLogger("PromptPilot-Utils")
 
-def sanitize_json(raw_output: str):
+def sanitize_json(text):
     try:
-        # Remove markdown code block
-        raw_output = raw_output.strip("` \njson")
-        # Extract first valid JSON array
-        matches = re.findall(r'\[\s*{.*?}\s*\]', raw_output, re.DOTALL)
-        for match in matches:
-            try:
-                return json.loads(match)
-            except json.JSONDecodeError:
-                continue
-        logger.warning("⚠️ No valid JSON arrays found.")
+        # Try direct JSON load
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Extract likely JSON using regex
+    try:
+        cleaned = re.search(r"\[.*\]", text, re.DOTALL)
+        if cleaned:
+            raw_json = cleaned.group(0)
+            sanitized = re.sub(r"//.*", "", raw_json)  # remove comments
+            return json.loads(sanitized)
     except Exception as e:
-        logger.error(f"❌ JSON sanitization failed: {e}")
+        logger.error(f"⚠️ Still invalid JSON after cleaning. {e}")
     return []
 
-def timeout_subprocess(cmd, timeout=60):
-    result = subprocess.run(cmd, capture_output=True, timeout=timeout, text=True)
-    return result.stdout
+def timeout_handler(func, timeout_seconds=60):
+    def handler(signum, frame):
+        raise TimeoutError("Function timed out")
+    signal.signal(signal.SIGALRM, handler)
+    signal.alarm(timeout_seconds)
+    try:
+        result = func()
+        signal.alarm(0)
+        return result
+    except Exception as e:
+        raise e
