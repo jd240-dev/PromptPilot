@@ -1,32 +1,28 @@
-import subprocess
-import time
 import logging
-from logger import setup_logger
+import time
+import webbrowser
+import pyautogui
 
-logger = setup_logger("PromptPilot-Executor")
+logger = logging.getLogger("PromptPilot-Executor")
 
 def execute_actions(actions):
     for action in actions:
         try:
-            if action["action"] == "open":
-                subprocess.Popen(action["app"])
-                logger.info(f"🟢 Opened: {action['app']}")
+            act = action.get("action")
 
-            elif action["action"] == "wait":
-                time.sleep(float(action["seconds"]))
-                logger.info(f"⏱️ Waited for {action['seconds']} seconds")
-
-            elif action["action"] == "type":
-                import pyautogui
-                pyautogui.write(action["text"])
-                logger.info(f"⌨️ Typed: {action['text']}")
-
-            elif action["action"] == "search":
-                query = action["query"]
-                subprocess.Popen(["start", "msedge", f"https://www.google.com/search?q={query}"], shell=True)
-                logger.info(f"🔍 Searched for: {query}")
-
+            if act == "open_app":
+                subprocess.Popen(action.get("name"))
+            elif act == "open_url":
+                webbrowser.open(action.get("site") or action.get("url"))
+            elif act == "wait":
+                time.sleep(action.get("seconds", 1))
+            elif act == "type":
+                pyautogui.write(action.get("text", ""), interval=0.05)
+            elif act == "click":
+                pyautogui.click()
+            elif act == "keypress":
+                pyautogui.press(action.get("key"))
             else:
                 logger.warning(f"⚠️ Unknown action: {action}")
         except Exception as e:
-            logger.error(f"❌ Execution error: {e}")
+            logger.error(f"❌ Failed action {action}: {e}")
