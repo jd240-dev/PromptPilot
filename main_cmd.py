@@ -1,11 +1,10 @@
 from agent import call_phi3
-from executor import execute_all
-from logger import init_logger
-from utils import log_action
+from executor import execute_actions
 
-init_logger()
-
-prompt = input("Enter your prompt: ")
-actions = call_phi3(prompt)
-log_action(prompt, actions)
-execute_all(actions)
+if __name__ == "__main__":
+    user_prompt = input("Enter your prompt: ")
+    actions = call_phi3(user_prompt)
+    if actions:
+        execute_actions(actions)
+    else:
+        print("⚠️ No valid actions returned.")
