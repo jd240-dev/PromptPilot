@@ -1,40 +1,38 @@
 import json
-import re
 import logging
 import threading
+import time
 
-logger = logging.getLogger("PromptPilot-Utils")
+logger = logging.getLogger("PromptPilot-Agent")
 
-def sanitize_json(raw_output):
+def sanitize_json(response: str):
     try:
-        json_str = extract_json_like_block(raw_output)
+        json_start = response.index('[')
+        json_str = response[json_start:]
         return json.loads(json_str)
-    except json.JSONDecodeError as e:
-        logger.error(f"❌ JSON parsing failed - {e}")
-        return []
-    except Exception as e:
-        logger.error(f"❌ JSON sanitization error: {e}")
-        return []
+    except (ValueError, json.JSONDecodeError) as e:
+        logger.error(f"❌ JSON parsing failed: {e}")
+        return None
 
-def extract_json_like_block(text):
-    match = re.search(r'\[.*?\]', text, re.DOTALL)
-    if match:
-        return match.group(0)
-    raise ValueError("No valid JSON block found.")
+def run_with_timeout(func, args=(), kwargs=None, timeout_duration=15):
+    result = [None]
+    kwargs = kwargs or {}
 
-def run_with_timeout(func, timeout):
-    result = {}
-    def wrapper():
+    def target():
         try:
-            result["value"] = func()
+            result[0] = func(*args, **kwargs)
         except Exception as e:
-            result["error"] = e
+            result[0] = e
 
-    thread = threading.Thread(target=wrapper)
+    thread = threading.Thread(target=target)
     thread.start()
-    thread.join(timeout)
+    thread.join(timeout_duration)
+
     if thread.is_alive():
-        raise TimeoutError("Function timed out.")
-    if "error" in result:
-        raise result["error"]
-    return result.get("value")
+        logger.error("❌ ERROR: Phi3 model response timed out.")
+        return None
+
+    return result[0]
+
+def timeout_handler(signum, frame):
+    raise TimeoutError("Phi3 model response timed out.")
