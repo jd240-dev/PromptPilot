@@ -1,15 +1,12 @@
-import atexit
-import os
+import logging
 
-LOG_FILE = "promptpilot.log"
-
-def log(msg):
-    with open(LOG_FILE, "a", encoding="utf-8") as f:
-        f.write(msg + "\n")
-    print(msg)
-
-def delete_logs():
-    if os.path.exists(LOG_FILE):
-        os.remove(LOG_FILE)
-
-atexit.register(delete_logs)
+def setup_logger(name):
+    logger = logging.getLogger(name)
+    if not logger.handlers:
+        logger.setLevel(logging.DEBUG)
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+    return logger
