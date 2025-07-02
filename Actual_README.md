@@ -1,18 +1,16 @@
-# PromptPilot 🛠️
+# PromptPilot
 
-AI-powered Windows automation assistant using local LLMs like `phi3:mini` via Ollama.
+A natural language powered AI automation assistant for Windows.
 
-## Features
-- Works offline
-- Supports GUI and CLI
-- Converts natural language to Windows actions
-- Uses `pyautogui` for automation
+### ✅ Features
+- Local, fast & private
+- Uses `phi3:mini` via Ollama
+- CMD and GUI interfaces
+- Automates any task from just a prompt
 
-## Requirements
-- Python 3.12+
-- Ollama installed (`https://ollama.com`)
-- Model `phi3:mini` pulled locally (`ollama pull phi3:mini`)
-- Dependencies: `pip install -r requirements.txt`
+### 🚀 Quick Start
 
-## Usage
-- Run `main_gui.py` or `main_cmd.py`
+1. Install Ollama & `phi3:mini`
+2. Install requirements:
+   ```bash
+   pip install -r requirements.txt
