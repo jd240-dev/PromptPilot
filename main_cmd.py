@@ -1,20 +1,25 @@
 import logging
 from agent import call_phi3
-from executor import execute_actions
+from executor import execute_action
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s:%(name)s:%(message)s"
+)
 
 def main():
     while True:
-        prompt = input("Enter your prompt: ")
-        if prompt.lower() in ["exit", "quit"]:
-            break
+        prompt = input("Enter your prompt: ").strip()
+        if not prompt:
+            continue
 
         actions = call_phi3(prompt)
-        if actions:
-            execute_actions(actions)
-        else:
+        if not actions:
             print("⚠️ No valid actions returned.")
+            continue
+
+        for action in actions:
+            execute_action(action)
 
 if __name__ == "__main__":
     main()
