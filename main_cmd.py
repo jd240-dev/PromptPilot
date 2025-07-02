@@ -2,8 +2,8 @@ from agent import call_phi3
 from executor import execute_actions
 
 if __name__ == "__main__":
-    user_prompt = input("Enter your prompt: ")
-    actions = call_phi3(user_prompt)
+    prompt = input("Enter your prompt: ")
+    actions = call_phi3(prompt)
     if actions:
         execute_actions(actions)
     else:
