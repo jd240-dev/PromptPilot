@@ -1,41 +1,56 @@
 import re
 import json
+import logging
 
-def clean_json(text: str) -> str:
+logger = logging.getLogger("PromptPilot-Utils")
+
+def clean_text(text: str) -> str:
     """
-    Extract and sanitize the first valid JSON array of actions from model output.
-    Handles extra text, invalid characters, and nested garbage gracefully.
+    Strips leading/trailing whitespace and removes invalid characters.
     """
-    # Remove code block formatting
-    text = re.sub(r"```(?:json)?", "", text, flags=re.IGNORECASE).replace("```", "").strip()
+    return text.strip().replace('\x00', '').replace('\u0000', '')
 
-    # Remove any trailing commas before a closing brace/bracket (which break JSON)
-    text = re.sub(r",(\s*[}\]])", r"\1", text)
 
-    # Try to locate the first JSON array
-    potential_arrays = re.findall(r"\[\s*{.*?}\s*]", text, re.DOTALL)
-
-    for block in potential_arrays:
-        try:
-            # Try parsing the block to see if it's valid JSON
-            parsed = json.loads(block)
-            if isinstance(parsed, list) and all(isinstance(p, dict) and "action" in p for p in parsed):
-                return json.dumps(parsed, indent=2)
-        except json.JSONDecodeError:
-            continue
-
-    # Fallback: return empty valid JSON array if nothing found
-    return "[]"
-
-def print_colored(text: str, color: str = "yellow") -> None:
+def sanitize_json(text: str) -> str:
     """
-    Print colored text to the terminal using ANSI escape codes.
+    Cleans and attempts to fix malformed JSON output from the model.
+    Handles:
+    - Improper quotes
+    - Trailing commas
+    - Multiple JSON blocks
+    - Code block wrappers
     """
-    colors = {
-        "red": "\033[91m",
-        "green": "\033[92m",
-        "yellow": "\033[93m",
-        "cyan": "\033[96m",
-        "reset": "\033[0m"
-    }
-    print(f"{colors.get(color, '')}{text}{colors['reset']}")
+    # Remove triple backticks or language markers like ```json
+    text = re.sub(r"```(json)?", "", text).strip("` \n")
+
+    # Try to extract JSON array or object
+    json_match = re.search(r'(\[\s*{.*?}\s*\])', text, re.DOTALL)
+    if not json_match:
+        json_match = re.search(r'({.*})', text, re.DOTALL)
+
+    if json_match:
+        cleaned = json_match.group(1)
+    else:
+        cleaned = text
+
+    # Fix common JSON issues
+    cleaned = re.sub(r",\s*}", "}", cleaned)
+    cleaned = re.sub(r",\s*]", "]", cleaned)
+
+    # Ensure valid double quotes
+    cleaned = re.sub(r"‘|’|“|”", "\"", cleaned)
+
+    # Remove trailing commas
+    cleaned = re.sub(r",\s*([\]}])", r"\1", cleaned)
+
+    # Fix incorrect quotes around keys
+    cleaned = re.sub(r"([,{]\s*)([a-zA-Z0-9_]+)(\s*:\s*)", r'\1"\2"\3', cleaned)
+
+    # Remove any non-JSON trailing data
+    try:
+        # Final validation
+        json.loads(cleaned)
+    except json.JSONDecodeError as e:
+        logger.warning(f"⚠️ JSON still may be invalid: {e}")
+
+    return cleaned
