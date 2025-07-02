@@ -1,24 +1,25 @@
 import tkinter as tk
 from agent import call_phi3
-from executor import execute_all
-from logger import init_logger
-from utils import log_action
-
-init_logger()
+from executor import execute_actions
 
 def run_prompt():
-    prompt = entry.get()
+    prompt = prompt_entry.get()
     actions = call_phi3(prompt)
-    log_action(prompt, actions)
-    execute_all(actions)
+    if actions:
+        execute_actions(actions)
+    else:
+        output_label.config(text="⚠️ No valid actions returned.")
 
-root = tk.Tk()
-root.title("PromptPilot Ultimate")
+app = tk.Tk()
+app.title("PromptPilot GUI")
+app.geometry("400x200")
 
-entry = tk.Entry(root, width=60)
-entry.pack(padx=10, pady=10)
+tk.Label(app, text="Enter Command:").pack(pady=10)
+prompt_entry = tk.Entry(app, width=50)
+prompt_entry.pack()
 
-btn = tk.Button(root, text="Launch Automation", command=run_prompt)
-btn.pack(pady=10)
+tk.Button(app, text="Run", command=run_prompt).pack(pady=20)
+output_label = tk.Label(app, text="")
+output_label.pack()
 
-root.mainloop()
+app.mainloop()
