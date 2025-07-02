@@ -1,24 +1,32 @@
 import tkinter as tk
+from tkinter import messagebox
 from agent import call_phi3
 from executor import execute_actions
 
-def run_task():
-    prompt = prompt_entry.get()
+def run_prompt():
+    prompt = entry.get()
+    if not prompt.strip():
+        messagebox.showwarning("Empty Prompt", "Please enter a task.")
+        return
     actions = call_phi3(prompt)
     if actions:
         execute_actions(actions)
     else:
-        result_label.config(text="⚠️ No valid actions returned.")
+        messagebox.showinfo("No Actions", "No valid actions returned.")
 
-root = tk.Tk()
-root.title("PromptPilot GUI")
+# GUI setup
+window = tk.Tk()
+window.title("PromptPilot")
+window.geometry("500x180")
+window.configure(bg="#f0f0f0")
 
-tk.Label(root, text="Enter Task:").pack()
-prompt_entry = tk.Entry(root, width=50)
-prompt_entry.pack()
+label = tk.Label(window, text="Enter your task (natural language):", bg="#f0f0f0", font=("Arial", 12))
+label.pack(pady=10)
 
-tk.Button(root, text="Run", command=run_task).pack()
-result_label = tk.Label(root, text="")
-result_label.pack()
+entry = tk.Entry(window, width=60, font=("Arial", 12))
+entry.pack(pady=5)
 
-root.mainloop()
+run_button = tk.Button(window, text="Execute Task", command=run_prompt, bg="#4CAF50", fg="white", font=("Arial", 12))
+run_button.pack(pady=15)
+
+window.mainloop()
