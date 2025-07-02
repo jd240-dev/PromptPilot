@@ -3,23 +3,23 @@ from agent import call_phi3
 from executor import execute_actions
 
 def run_prompt():
-    prompt = prompt_entry.get()
+    prompt = entry.get()
     actions = call_phi3(prompt)
     if actions:
         execute_actions(actions)
     else:
-        output_label.config(text="⚠️ No valid actions returned.")
+        result_label.config(text="⚠️ No valid actions.")
 
-app = tk.Tk()
-app.title("PromptPilot GUI")
-app.geometry("400x200")
+root = tk.Tk()
+root.title("PromptPilot GUI")
 
-tk.Label(app, text="Enter Command:").pack(pady=10)
-prompt_entry = tk.Entry(app, width=50)
-prompt_entry.pack()
+entry = tk.Entry(root, width=60)
+entry.pack(pady=10)
 
-tk.Button(app, text="Run", command=run_prompt).pack(pady=20)
-output_label = tk.Label(app, text="")
-output_label.pack()
+button = tk.Button(root, text="Run", command=run_prompt)
+button.pack(pady=5)
 
-app.mainloop()
+result_label = tk.Label(root, text="")
+result_label.pack()
+
+root.mainloop()
