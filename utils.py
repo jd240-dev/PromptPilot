@@ -1,43 +1,30 @@
-import json
 import re
 import threading
-import subprocess
-import logging
-
-logger = logging.getLogger("PromptPilot-Utils")
 
 def sanitize_json(text):
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        pass
+    # Remove backticks and triple quotes
+    text = re.sub(r"```(json)?", "", text.strip())
+    # Fix common JSON issues
+    text = re.sub(r",\s*([\]}])", r"\1", text)  # Remove trailing commas
+    text = re.sub(r"(\w+):", r'"\1":', text)    # Unquoted keys
+    return text.strip()
 
-    try:
-        cleaned = re.search(r"\[.*\]", text, re.DOTALL)
-        if cleaned:
-            raw_json = cleaned.group(0)
-            sanitized = re.sub(r"//.*", "", raw_json)
-            return json.loads(sanitized)
-    except Exception as e:
-        logger.error(f"⚠️ Still invalid JSON after cleaning. {e}")
-    return []
-
-def run_with_timeout(func, timeout_seconds=60):
-    result = {}
-    exception = {}
+def run_with_timeout(func, args=(), kwargs={}, timeout=30):
+    result = [None]
+    exception = [None]
 
     def wrapper():
         try:
-            result['value'] = func()
+            result[0] = func(*args, **kwargs)
         except Exception as e:
-            exception['error'] = e
+            exception[0] = e
 
     thread = threading.Thread(target=wrapper)
     thread.start()
-    thread.join(timeout_seconds)
+    thread.join(timeout)
 
     if thread.is_alive():
-        raise subprocess.TimeoutExpired(cmd='ollama run', timeout=timeout_seconds)
-    if 'error' in exception:
-        raise exception['error']
-    return result.get('value')
+        return None
+    if exception[0]:
+        raise exception[0]
+    return result[0]
