@@ -1,42 +1,49 @@
-import time
 import subprocess
+import time
 import logging
-import webbrowser
 import pyautogui
+import webbrowser
 
 logger = logging.getLogger("PromptPilot-Executor")
+logger.setLevel(logging.INFO)
 
-def execute_action(action):
-    try:
-        act = action.get("action")
+def execute_actions(actions):
+    for action in actions:
+        try:
+            act = action.get("action", "").lower()
 
-        if act == "open_app":
-            app_name = action.get("name")
-            subprocess.Popen(["start", "", app_name], shell=True)
+            if act == "open_app":
+                app = action.get("name")
+                subprocess.Popen(app)
+                logger.info(f"🟢 Opened app: {app}")
 
-        elif act == "wait":
-            time.sleep(float(action.get("seconds", 1)))
+            elif act == "switch_tab":
+                pyautogui.hotkey("ctrl", "t")
+                logger.info("🟢 Opened new browser tab.")
 
-        elif act == "type":
-            pyautogui.write(action.get("text", ""), interval=0.05)
+            elif act == "wait":
+                seconds = float(action.get("seconds", 1))
+                time.sleep(seconds)
+                logger.info(f"⏱️ Waited for {seconds} seconds.")
 
-        elif act == "hotkey":
-            keys = action.get("keys", [])
-            pyautogui.hotkey(*keys)
+            elif act == "open_url":
+                site = action.get("site") or action.get("url")
+                if site:
+                    webbrowser.open(site)
+                    logger.info(f"🌐 Opened URL: {site}")
 
-        elif act == "click":
-            if "x" in action and "y" in action:
-                pyautogui.click(action["x"], action["y"])
+            elif act == "type":
+                text = action.get("text") or action.get("value", "")
+                pyautogui.write(text, interval=0.05)
+                logger.info(f"⌨️ Typed: {text}")
+
+            elif act == "hotkey":
+                keys = action.get("keys", [])
+                pyautogui.hotkey(*keys)
+                logger.info(f"⌨️ Pressed hotkeys: {' + '.join(keys)}")
+
             else:
-                pyautogui.click()
+                logger.warning(f"⚠️ Unknown action: {action}")
 
-        elif act == "open_url":
-            url = action.get("url")
-            if url:
-                webbrowser.open(url)
-
-        else:
-            logger.warning(f"⚠️ Unknown action: {action}")
-
-    except Exception as e:
-        logger.error(f"❌ Error executing action {action}: {e}")
+        except Exception as e:
+            logger.error(f"❌ Error executing action {action}: {e}")
