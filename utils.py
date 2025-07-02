@@ -1,30 +1,40 @@
+import json
 import re
+import logging
 import threading
 
-def sanitize_json(text):
-    # Remove backticks and triple quotes
-    text = re.sub(r"```(json)?", "", text.strip())
-    # Fix common JSON issues
-    text = re.sub(r",\s*([\]}])", r"\1", text)  # Remove trailing commas
-    text = re.sub(r"(\w+):", r'"\1":', text)    # Unquoted keys
-    return text.strip()
+logger = logging.getLogger("PromptPilot-Utils")
 
-def run_with_timeout(func, args=(), kwargs={}, timeout=30):
-    result = [None]
-    exception = [None]
+def sanitize_json(raw_output):
+    try:
+        json_str = extract_json_like_block(raw_output)
+        return json.loads(json_str)
+    except json.JSONDecodeError as e:
+        logger.error(f"❌ JSON parsing failed - {e}")
+        return []
+    except Exception as e:
+        logger.error(f"❌ JSON sanitization error: {e}")
+        return []
 
+def extract_json_like_block(text):
+    match = re.search(r'\[.*?\]', text, re.DOTALL)
+    if match:
+        return match.group(0)
+    raise ValueError("No valid JSON block found.")
+
+def run_with_timeout(func, timeout):
+    result = {}
     def wrapper():
         try:
-            result[0] = func(*args, **kwargs)
+            result["value"] = func()
         except Exception as e:
-            exception[0] = e
+            result["error"] = e
 
     thread = threading.Thread(target=wrapper)
     thread.start()
     thread.join(timeout)
-
     if thread.is_alive():
-        return None
-    if exception[0]:
-        raise exception[0]
-    return result[0]
+        raise TimeoutError("Function timed out.")
+    if "error" in result:
+        raise result["error"]
+    return result.get("value")
